@@ -78,6 +78,40 @@ options {
     }
 }
 
+
+scriptUnit returns [CompilationUnit compilationUnit]
+    @init { $compilationUnit = new CompilationUnit(null);
+            ImportList importList = new ImportList(null);
+            $compilationUnit.setImportList(importList);
+            ModuleDescriptor moduleDescriptor = new ModuleDescriptor(null); }
+    : (
+    	ca=compilerAnnotations
+    	SEMICOLON
+    	{ $compilationUnit.getCompilerAnnotations().addAll($ca.annotations); }
+      )?
+      
+      MODULE
+      { moduleDescriptor = new ModuleDescriptor($MODULE);         
+        $compilationUnit.addModuleDescriptor(moduleDescriptor); }
+        
+      SEMICOLON
+      
+      
+      (
+      	importDeclaration
+      	{ importList.addImport($importDeclaration.importDeclaration);
+      	  $compilationUnit.connect(importList); }
+      |
+        toplevelDeclaration
+        { if ($toplevelDeclaration.declaration!=null)
+              $compilationUnit.addDeclaration($toplevelDeclaration.declaration); }
+      | RBRACE
+        { displayRecognitionError(getTokenNames(),
+              new MismatchedTokenException(EOF, input)); }
+      )*
+      EOF
+    ;
+      	
 compilationUnit returns [CompilationUnit compilationUnit]
     @init { $compilationUnit = new CompilationUnit(null);
             ImportList importList = new ImportList(null); 
@@ -87,7 +121,7 @@ compilationUnit returns [CompilationUnit compilationUnit]
         SEMICOLON
         { $compilationUnit.getCompilerAnnotations().addAll($ca.annotations); }
       )?
-      ( 
+      (
         importDeclaration 
         { importList.addImport($importDeclaration.importDeclaration); 
           $compilationUnit.connect(importList); }
@@ -132,6 +166,7 @@ moduleDescriptor returns [ModuleDescriptor moduleDescriptor]
       { $moduleDescriptor = new ModuleDescriptor($MODULE); 
         $moduleDescriptor.setAnnotationList($annotations.annotationList);
         $moduleDescriptor.getCompilerAnnotations().addAll($compilerAnnotations.annotations); }
+        
       packagePath
       { $moduleDescriptor.setImportPath($packagePath.importPath); }
       (
@@ -965,7 +1000,7 @@ block returns [Block block]
 
 //Note: interface bodies can't really contain 
 //      statements, but error recovery works
-//      much better if we validate that later
+//      much better if we validate that laterbirdman
 //      on, instead of doing it in the parser.
 interfaceBody returns [InterfaceBody interfaceBody]
     : LBRACE 
